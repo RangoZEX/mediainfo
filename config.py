@@ -14,6 +14,6 @@ class Config(object):
     API_HASH = str(os.getenv('API_HASH', 'd02a52f4098d0d20b1be409818ec236f'))
     API_ID = int(os.getenv('API_ID', '4216648'))
     OWNER_ID = [int(x) for x in os.getenv("OWNER_ID", "1196263968").split()]
- 
-globals().update({key: value for key, value in vars(Var).items() if not key.startswith('__')})
 
+# Update globals with the variables from Config class
+globals().update({key: value for key, value in vars(Config).items() if not key.startswith('__')})
