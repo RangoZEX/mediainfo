@@ -1,2 +1,2 @@
-worker: python3 -m Fonts
+worker: python3 bot.py
  
