@@ -3,3 +3,4 @@ tgcrypto==1.2.2
 pyromod
 requests
 dnspython
+python-dotenv<=0.20.0
