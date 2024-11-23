@@ -29,7 +29,7 @@ async def font_style(c, m):
     button_labels = list(FONT_BUTTONS.keys())
     for i in range(0, len(button_labels), 3):  # Create rows of 3 buttons
         row = [
-            InlineKeyboardButton(label, callback_data=f"{FONT_BUTTONS[label]}|{original_text}") 
+            InlineKeyboardButton(label, callback_data=f"{FONT_BUTTONS[label]}|{original_text}")
             for label in button_labels[i:i + 3]
         ]
         buttons.append(row)
@@ -50,12 +50,12 @@ async def apply_font(c: Client, cb: CallbackQuery):
         selected_font = getattr(FONT, font_name, None)
 
         if selected_font:
-            # Convert the text using the selected font
+            # Ensure conversion works for all characters
             converted_text = ''.join(
-                selected_font.get(char, char) for char in original_text
+                selected_font.get(char.lower(), char) for char in original_text
             )
             await cb.message.edit_text(
-                text=f"Converted Text ({font_name}):\n{converted_text}",
+                text=converted_text,
                 reply_markup=cb.message.reply_markup  # Keep the buttons intact
             )
         else:
@@ -63,3 +63,4 @@ async def apply_font(c: Client, cb: CallbackQuery):
     except Exception as e:
         logging.error(f"Error applying font: {e}")
         await cb.answer("An error occurred!", show_alert=True)
+        
