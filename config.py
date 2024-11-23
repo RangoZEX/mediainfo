@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
  
 class Config(object):
     BOT_TOKEN = str(os.getenv('BOT_TOKEN', '1280510378:AAGY2MT44MjWKKUErTKIOfXPPKm33dntjkk'))
-    API_HASH = str(os.getenv('API_HASH', ''d02a52f4098d0d20b1be409818ec236f))
+    API_HASH = str(os.getenv('API_HASH', 'd02a52f4098d0d20b1be409818ec236f'))
     API_ID = int(os.getenv('API_ID', '4216648'))
     OWNER_ID = [int(x) for x in os.getenv("OWNER_ID", "1196263968").split()]
  
