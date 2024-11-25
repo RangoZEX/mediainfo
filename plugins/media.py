@@ -20,7 +20,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@Client.on_message(filters.private & (filters.document | filters.video | filters.audio))
+@Client.on_message(filters.text & filters.incoming & filters.command(["indfo", "mediainfo"]))
 async def media_info(client, m: Message):  
     user = m.from_user.first_name
     msg = await m.reply("**Generating... Please wait 🕵️**", quote=True)
