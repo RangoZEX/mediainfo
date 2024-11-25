@@ -29,7 +29,7 @@ async def media_info(client, m: Message):
 
     if not (m.reply_to_message and (m.reply_to_message.video or m.reply_to_message.document)):
         await msg.edit_text("**Please reply to a VIDEO, AUDIO, or DOCUMENT to get media information.**")
-        logger.warning(f"{user} sent an unsupported or no media.")
+        logger.warning(f"🕵️ {user}, sent an unsupported or no media.")
         return
 
     try:
@@ -56,17 +56,17 @@ async def media_info(client, m: Message):
         elif media_type == 'document':
             media = media_message.document
         else:
-            logger.warning(f"{user} sent an unsupported media type: {media_type}")
+            logger.warning(f🕵️ "{user}, sent an unsupported media type: {media_type}")
             await msg.edit_text("**This media type is not supported.**")
             return
 
         mime = media.mime_type
         file_name = media.file_name
         size = media.file_size
-        logger.info(f"{user} requested file - Name: {file_name}, Size: {size} bytes")
+        logger.info(f"🕵️ {user}, Requests info of:📁 {file_name}, 💽 Size: {size} bytes")
 
         if media_type == 'document' and all(x not in mime for x in ['video', 'audio', 'image']):
-            logger.warning(f"{user} sent an unsupported document MIME type: {mime}")
+            logger.warning(f"🤡 {user}, sent an unsupported document MIME type: {mime}")
             await msg.edit_text("**This document type is not supported.**")
             return
 
@@ -102,8 +102,8 @@ async def media_info(client, m: Message):
         page = telegraph.create_page(title=page_title, html_content=page_content)
         page_url = page['url']
 
-        await msg.edit(f"**Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
-        logger.info(f"Media info for {file_name} sent successfully to {user}.")
+        await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
+        logger.info(f"🕵️ Media info for, {file_name} sent successfully to: {user}.")
 
     except Exception as e:
         logger.error(f"Error processing file: {e}\nTraceback:\n{traceback.format_exc()}")
