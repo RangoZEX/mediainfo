@@ -56,7 +56,7 @@ async def media_info(client, m: Message):
         elif media_type == 'document':
             media = media_message.document
         else:
-            logger.warning(f🕵️ "{user}, sent an unsupported media type: {media_type}")
+            logger.warning(f"🕵️ {user}, sent an unsupported media type: {media_type}")
             await msg.edit_text("**This media type is not supported.**")
             return
 
