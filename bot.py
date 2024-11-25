@@ -6,9 +6,12 @@ from pyrogram.raw.all import layer
 from config import API_ID, API_HASH, BOT_TOKEN
 import pyromod.listen
 
-# Set up logging
-logging.config.fileConfig('logging.conf', disable_existing_loggers=False)
-logger = logging.getLogger("bot")
+
+# Set up logging configuration from file
+logging.config.fileConfig('logging.conf')
+
+# Set logging level for Pyrogram to WARNING to suppress INFO level logs
+logging.getLogger("pyrogram").setLevel(logging.WARNING)
 
 class Bot(Client):
     def __init__(self):
