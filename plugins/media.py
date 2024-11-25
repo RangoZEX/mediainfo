@@ -8,18 +8,12 @@ import logging
 from plugins.emojis import EMOJIS
 from pyrogram import Client, filters
 from pyrogram.types import Message
-
-# Logger Configuration
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)d]",
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler("media_info.log", mode="a", encoding="utf-8"),
-    ],
-)
-logger = logging.getLogger(__name__)
-
+import logging.config
+ 
+# Set up logging
+logging.config.fileConfig('logging.conf')  # Ensure you have the logging.conf file
+logging.getLogger().setLevel(logging.ERROR)
+ 
 @Client.on_message(filters.text & filters.incoming & filters.command(["info", "mediainfo"]))
 async def media_info(client, m: Message):  
     user = m.from_user.first_name
