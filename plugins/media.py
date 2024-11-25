@@ -1,25 +1,37 @@
 import json
 import os
 import re
+import random
 import asyncio
 import subprocess
 import logging
 from plugins.emojis import EMOJIS
 from pyrogram import Client, filters
 from pyrogram.types import Message
+
+# Logger Configuration
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s [%(filename)s:%(lineno)d]",
+    handlers=[
+        logging.StreamHandler(),
+        logging.FileHandler("media_info.log", mode="a", encoding="utf-8"),
+    ],
+)
 logger = logging.getLogger(__name__)
 
-@Client.on_message(filters.private & filters.command("mediainfo") & filters.reply)
+@Client.on_message(filters.private & (filters.document | filters.video | filters.audio))
 async def media_info(client, m: Message):  
     user = m.from_user.first_name
     msg = await m.reply("**Generating... Please wait 🕵️**", quote=True)
 
-    if not m.reply_to_message or not m.reply_to_message.media:
+    if len(m.command) < 2:
         await msg.edit_text("**Please reply to a VIDEO, AUDIO, or DOCUMENT to get media information.**")
         return
+
     try:
         random_emoji = random.choice(EMOJIS.EMOJI_LIST)    
-        await c.send_reaction(
+        await client.send_reaction(
             chat_id=m.chat.id,
             message_id=m.id,
             emoji=random_emoji,
@@ -33,6 +45,7 @@ async def media_info(client, m: Message):
     media_type = media_message.media.value
 
     try:
+        # Determine media type and fetch media details
         if media_type == 'video':
             media = media_message.video
         elif media_type == 'audio':
@@ -40,20 +53,21 @@ async def media_info(client, m: Message):
         elif media_type == 'document':
             media = media_message.document
         else:
-            logging.warning("Unsupported media type")
+            logger.warning("Unsupported media type")
             await msg.edit_text("**This media type is not supported.**")
             return
 
         mime = media.mime_type
         file_name = media.file_name
         size = media.file_size
-        logging.info(f"{user}: Request file - {file_name}, Size: {size}")
+        logger.info(f"{user}: Request file - {file_name}, Size: {size}")
 
         if media_type == 'document' and all(x not in mime for x in ['video', 'audio', 'image']):
-            logging.warning("Unsupported document type")
+            logger.warning("Unsupported document type")
             await msg.edit_text("**This document type is not supported.**")
             return
 
+        # Download or stream the file
         if size <= 50_000_000:  # Direct download for smaller files
             await media_message.download(file_name)
         else:  # Stream large files
@@ -61,6 +75,7 @@ async def media_info(client, m: Message):
                 with open(file_name, 'ab') as f:
                     f.write(chunk)
 
+        # Run mediainfo subprocess
         mediainfo = subprocess.check_output(['mediainfo', file_name]).decode("utf-8")
         mediainfo_json = json.loads(
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
@@ -84,17 +99,18 @@ async def media_info(client, m: Message):
 
                 lines = remove_empty_lines(lines)
 
+            # Write processed mediainfo to a text file
             with open(f"{file_name}.txt", 'w') as f:
                 f.write('\n'.join(lines))
 
             await msg.edit("**SUCCESSFULLY GENERATED ✓**")
             await m.reply_document(document=f"{file_name}.txt", caption=f'`{file_name}`')
-            logging.info(f"📻 Media info for: {file_name} sent successfully to : {user}")
+            logger.info(f"📻 Media info for: {file_name} sent successfully to : {user}")
         finally:
             os.remove(f"{file_name}.txt")
 
     except Exception as e:
-        logging.error(f"Error processing file: {e}")
+        logger.error(f"Error processing file: {e}\nTraceback:\n{traceback.format_exc()}")
         await msg.edit_text("**An error occurred while processing this file.**")
     finally:
         if os.path.exists(file_name):
