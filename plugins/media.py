@@ -6,6 +6,7 @@ import asyncio
 import subprocess
 import logging
 import traceback
+from telegraph import Telegraph
 from plugins.emojis import EMOJIS
 from pyrogram import Client, filters
 from pyrogram.types import Message
@@ -13,10 +14,16 @@ import logging.config
 
 # Set up logging
 logging.config.fileConfig('logging.conf')
-logger = logging.getLogger(__name__)  
+logger = logging.getLogger(__name__)
+
+# Initialize Telegraph
+telegraph = Telegraph()
+telegraph.create_account(short_name="UploadXPro_Bot", author_name="AMC DEV", author_url="https://t.me/amcdev")
+
+section_dict = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Menu': '🗃'}
 
 @Client.on_message(filters.text & filters.incoming & filters.command(["info", "mediainfo"]))
-async def media_info(client, m: Message):  
+async def media_info(client, m: Message):
     user = m.from_user.first_name
     msg = await m.reply("**Generating... Please wait 🕵️**", quote=True)
 
@@ -26,7 +33,7 @@ async def media_info(client, m: Message):
         return
 
     try:
-        random_emoji = random.choice(EMOJIS.EMOJI_LIST)    
+        random_emoji = random.choice(EMOJIS.EMOJI_LIST)
         await client.send_reaction(
             chat_id=m.chat.id,
             message_id=m.id,
@@ -35,7 +42,7 @@ async def media_info(client, m: Message):
         )
     except Exception as e:
         logger.error(f"Error sending reaction: {e}\nTraceback:\n{traceback.format_exc()}")
-        
+
     await asyncio.sleep(0.5)
     media_message = m.reply_to_message
     media_type = media_message.media.value
@@ -74,38 +81,29 @@ async def media_info(client, m: Message):
                     f.write(chunk)
 
         # Run mediainfo subprocess
-        mediainfo = subprocess.check_output(['mediainfo', file_name]).decode("utf-8")
         mediainfo_json = json.loads(
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
-        readable_size = human_size(size)
 
-        try:
-            lines = mediainfo.splitlines()
-            if 'image' not in mime:
-                duration = float(mediainfo_json['media']['track'][0].get('Duration', 0))
-                bitrate_kbps = (size * 8) / (duration * 1000) if duration else 0
-                bitrate = human_bitrate(bitrate_kbps)
+        # Parse and structure media info
+        sections = []
+        for track in mediainfo_json['media']['track']:
+            section_type = track.get('@type', 'Unknown')
+            emoji = section_dict.get(section_type, 'ℹ️')
+            section_content = f"<h4>{emoji} {section_type} Information</h4><ul>"
+            for key, value in track.items():
+                if key != '@type':
+                    section_content += f"<li><b>{key}:</b> {value}</li>"
+            section_content += "</ul>"
+            sections.append(section_content)
 
-                for i in range(len(lines)):
-                    if 'File size' in lines[i]:
-                        lines[i] = re.sub(r": .+", f': {readable_size}', lines[i])
-                    elif 'Overall bit rate' in lines[i] and 'Overall bit rate mode' not in lines[i]:
-                        lines[i] = re.sub(r": .+", f': {bitrate}', lines[i])
-                    elif 'IsTruncated' in lines[i] or 'FileExtension_Invalid' in lines[i]:
-                        lines[i] = ''
+        page_content = "<br>".join(sections)
+        page_title = "@UploadXPro_Bot"
+        page = telegraph.create_page(title=page_title, html_content=page_content)
+        page_url = page['url']
 
-                lines = remove_empty_lines(lines)
-
-            # Write processed mediainfo to a text file
-            with open(f"{file_name}.txt", 'w') as f:
-                f.write('\n'.join(lines))
-
-            await msg.edit("**SUCCESSFULLY GENERATED ✓**")
-            await m.reply_document(document=f"{file_name}.txt", caption=f'`{file_name}`')
-            logger.info(f"Media info for {file_name} sent successfully to {user}.")
-        finally:
-            os.remove(f"{file_name}.txt")
+        await msg.edit(f"**Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
+        logger.info(f"Media info for {file_name} sent successfully to {user}.")
 
     except Exception as e:
         logger.error(f"Error processing file: {e}\nTraceback:\n{traceback.format_exc()}")
@@ -113,19 +111,4 @@ async def media_info(client, m: Message):
     finally:
         if os.path.exists(file_name):
             os.remove(file_name)
-
-def human_size(size):
-    for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
-        if size < 1024.0:
-            return f"{size:.2f} {unit}"
-        size /= 1024.0
-    return f"{size:.2f} PB"
-
-def human_bitrate(bitrate_kbps):
-    if bitrate_kbps < 1000:
-        return f"{bitrate_kbps:.2f} Kbps"
-    return f"{bitrate_kbps / 1000:.2f} Mbps"
-
-def remove_empty_lines(lines):
-    return [line for line in lines if line.strip()]
- 
+            
