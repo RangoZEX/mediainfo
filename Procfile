@@ -1,1 +1,1 @@
-web: docker
+web: python3 bot.py
