@@ -4,14 +4,10 @@ import re
 import asyncio
 import subprocess
 import logging
+from plugins.emojis import EMOJIS
 from pyrogram import Client, filters
 from pyrogram.types import Message
-
-logging.basicConfig(
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    level=logging.INFO,
-    handlers=[logging.StreamHandler()]
-)
+logger = logging.getLogger(__name__)
 
 @Client.on_message(filters.private & filters.command("mediainfo") & filters.reply)
 async def media_info(client, m: Message):  
@@ -21,7 +17,17 @@ async def media_info(client, m: Message):
     if not m.reply_to_message or not m.reply_to_message.media:
         await msg.edit_text("**Please reply to a VIDEO, AUDIO, or DOCUMENT to get media information.**")
         return
-
+    try:
+        random_emoji = random.choice(EMOJIS.EMOJI_LIST)    
+        await c.send_reaction(
+            chat_id=m.chat.id,
+            message_id=m.id,
+            emoji=random_emoji,
+            big=True
+        )
+    except Exception as e:
+        logger.error(f"Error sending reaction: {e}")
+        
     await asyncio.sleep(0.5)
     media_message = m.reply_to_message
     media_type = media_message.media.value
