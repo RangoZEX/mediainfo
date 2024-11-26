@@ -15,13 +15,11 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Telegraph and create an account if it doesn't exist
+# Initialize Telegraph (auto-create account)
 telegraph = Telegraph(domain="graph.org")
-try:
-    telegraph.create_account(short_name="UploadXPro_Bot", author_name="AMC DEV", author_url="https://t.me/amcdev")
-except Exception as e:
-    logger.info(f"Telegraph account already exists or failed to create: {e}")
+telegraph.create_account(short_name="UploadXPro_Bot", author_name="AMC DEV", author_url="https://t.me/amcdev")
 
+# Section mapping for media types
 section_dict = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Menu': '🗃'}
 
 @Client.on_message(filters.text & filters.incoming & filters.command(["info", "mediainfo"]))
@@ -86,18 +84,8 @@ async def media_info(client, m: Message):
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
 
-        # Start building the HTML content with improved design
+        # Start building the HTML content without the <html> and <head> tags
         content = f"""
-        <html>
-        <head>
-        <style>
-        body {{ font-family: Arial, sans-serif; color: #333; }}
-        h2 {{ color: #ff6347; }}
-        ul {{ margin-top: 5px; }}
-        li {{ margin-bottom: 8px; }}
-        .section {{ margin-bottom: 20px; }}
-        </style>
-        </head>
         <body>
         <h2>AMC DEVELOPERS</h2>
         <p><b>@UploadXPro_Bot</b></p>
@@ -133,8 +121,8 @@ async def media_info(client, m: Message):
 
         content += "".join(sections)
 
-        # Closing HTML tags
-        content += "</body></html>"
+        # Closing body tag
+        content += "</body>"
 
         # Create the page on Telegraph
         page = telegraph.create_page(title=f"UploadXPro_Bot", html_content=content)
