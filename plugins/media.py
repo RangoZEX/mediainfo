@@ -68,7 +68,6 @@ async def media_info(client, m: Message):
             logger.warning(f"🤡 {user}, sent an unsupported document MIME type: {mime}")
             await msg.edit_text("**This document type is not supported.**")
             return
-
         # Download or stream the file
         if size <= 50_000_000:  # Direct download for smaller files
             await media_message.download(file_name)
@@ -101,27 +100,27 @@ async def media_info(client, m: Message):
         sections = []
 
         # General section
-        general_section = "<div class='section'><h3>🗒 General Information</h3><ul>"
+        general_section = "<div class='section'><h3>🗒 General Information</h3><pre>"
         for key, value in mediainfo_json['media'].items():
-            general_section += f"<li><b>{key}:</b> {value}</li>"
-        general_section += "</ul></div>"
+            general_section += f"{key:<40}: {value}\n"
+        general_section += "</pre></div><br>"
         sections.append(general_section)
 
         # Video, Audio, and other sections
         for track in mediainfo_json['media']['track']:
             section_type = track.get('@type', 'Unknown')
             emoji = section_dict.get(section_type, 'ℹ️')
-            section_content = f"<div class='section'><h3>{emoji} {section_type} Information</h3><ul>"
+            section_content = f"<div class='section'><h3>{emoji} {section_type} Information</h3><pre>"
             for key, value in track.items():
                 if key != '@type':
-                    section_content += f"<li><b>{key}:</b> {value}</li>"
-            section_content += "</ul></div>"
+                    section_content += f"{key:<40}: {value}\n"
+            section_content += "</pre></div><br>"
             sections.append(section_content)
 
         content += "".join(sections)
 
         # Create the page on Telegraph
-        page = await telegraph.create_page(title=f"UploadXPro_Bot", html_content=content)
+        page = await telegraph.create_page(title="UploadXPro_Bot", html_content=content)
         page_url = page['url']
 
         await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
@@ -132,5 +131,4 @@ async def media_info(client, m: Message):
         await msg.edit_text("**An error occurred while processing this file.**")
     finally:
         if os.path.exists(file_name):
-            os.remove(file_name)
-            
+            os.remove(file_name) 
