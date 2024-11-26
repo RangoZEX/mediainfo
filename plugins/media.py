@@ -1,10 +1,10 @@
-from datetime import datetime
+import asyncio
 import random
 import json
-import asyncio
 import subprocess
 import logging
-from telegraph import Telegraph
+from datetime import datetime
+from telegraph.aio import Telegraph
 from plugins.emojis import EMOJIS
 from pyrogram import Client, filters
 from pyrogram.types import Message
@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Initialize Telegraph (auto-create account)
 telegraph = Telegraph(domain="graph.org")
-telegraph.create_account(short_name="UploadXPro_Bot", author_name="AMC DEV", author_url="https://t.me/amcdev")
+account = asyncio.run(telegraph.create_account(short_name="UploadXPro_Bot", author_name="AMC DEV", author_url="https://t.me/amcdev"))
 
 # Section mapping for media types
 section_dict = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Menu': '🗃'}
@@ -84,9 +84,8 @@ async def media_info(client, m: Message):
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
 
-        # Start building the HTML content without the <html> and <head> tags
+        # Start building the content without <html> and <body> tags
         content = f"""
-        <body>
         <h2>AMC DEVELOPERS</h2>
         <p><b>@UploadXPro_Bot</b></p>
         <p>{datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a></p>
@@ -121,11 +120,8 @@ async def media_info(client, m: Message):
 
         content += "".join(sections)
 
-        # Closing body tag
-        content += "</body>"
-
         # Create the page on Telegraph
-        page = telegraph.create_page(title=f"UploadXPro_Bot", html_content=content)
+        page = await telegraph.create_page(title=f"UploadXPro_Bot", html_content=content)
         page_url = page['url']
 
         await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
