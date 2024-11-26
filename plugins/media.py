@@ -15,18 +15,22 @@ logger = logging.getLogger(__name__)
 
 telegraph = Telegraph(domain="graph.org")
 
+# Initialize the Telegraph account every time the script runs
 async def initialize_telegraph():
-    return await telegraph.create_account(
-        short_name="UploadXPro_Bot", 
-        author_name="AMC DEV", 
-        author_url="https://t.me/amcdev"
-    )
+    try:
+        # Attempt to create a new Telegraph account each time
+        account = await telegraph.create_account(
+            short_name="UploadXPro_Bot", 
+            author_name="AMC DEV", 
+            author_url="https://t.me/amcdev"
+        )
+        logger.info(f"Telegraph Account initialized successfully: {account}")
+        return account
+    except Exception as e:
+        logger.error(f"Error creating Telegraph account: {e}")
+        return None
 
-async def main():
-    account = await initialize_telegraph()
-
-section_dict = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Menu': '🗃'}
-
+# Function to handle media info command
 @Client.on_message(filters.text & filters.incoming & filters.command(["info", "mediainfo"]))
 async def media_info(client, m: Message):
     user = m.from_user.first_name
@@ -36,10 +40,13 @@ async def media_info(client, m: Message):
         await msg.edit_text("**Please reply to a VIDEO, AUDIO, or DOCUMENT to get media information.**")
         logger.warning(f"🕵️ {user}, sent an unsupported or no media.")
         return
+
     await asyncio.sleep(1)
     media_message = m.reply_to_message
     media_type = media_message.media.value
+
     try:
+        # Check media type and fetch media info
         if media_type == 'video':
             media = media_message.video
         elif media_type == 'audio':
@@ -56,6 +63,7 @@ async def media_info(client, m: Message):
         size = media.file_size
         logger.info(f"🕵️ {user}, Requests info of:📁 {file_name}, 💽 Size: {size} bytes")
 
+        # Download or stream the media based on its size
         if media_type == 'document' and all(x not in mime for x in ['video', 'audio', 'image']):
             logger.warning(f"🤡 {user}, sent an unsupported document MIME type: {mime}")
             await msg.edit_text("**This document type is not supported.**")
@@ -70,39 +78,50 @@ async def media_info(client, m: Message):
                 with open(file_name, 'ab') as f:
                     f.write(chunk)
 
+        # Run MediaInfo command to get detailed information
         mediainfo_json = json.loads(
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
-        
+
+        # Prepare content for the Telegraph page
         content = f"""
-        <h3>AMC DEVELOPERS</h3>
         <p><b>@UploadXPro_Bot</b></p>
         <p>{datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a></p>
         <hr><br>
-
-        <h3>🗒 General Information</h3>
-        <pre>
+        <h3>📁 <b>{file_name}</b></h3>
+        <p>File Size: {size / 1024 / 1024:.2f} MB</p>
         """
-        
-        # Add general media information
-        for key, value in mediainfo_json['media'].items():
-            content += f"{key:<40}: {value}\n"
-        content += "</pre><br>"
 
-        # Add track information (if available)
-        for track in mediainfo_json['media']['track']:
+        sections = []
+
+        general_section = "<h3>🗒 General Information</h3><pre>"
+        for key, value in mediainfo_json['media'].items():
+            general_section += f"{key:<40}: {value}\n"
+        general_section += "</pre><br>"
+        sections.append(general_section)
+
+        # Add track information (if any)
+        for track in mediainfo_json['media'].get('track', []):
             section_type = track.get('@type', 'Unknown')
-            emoji = section_dict.get(section_type, 'ℹ️')
-            content += f"<h3>{emoji} {section_type} Information</h3><pre>"
+            emoji = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Menu': '🗃'}.get(section_type, 'ℹ️')
+            section_content = f"<h3>{emoji} {section_type} Information</h3><pre>"
             for key, value in track.items():
                 if key != '@type':
-                    content += f"{key:<40}: {value}\n"
-            content += "</pre><br>"
+                    section_content += f"{key:<40}: {value}\n"
+            section_content += "</pre><br>"
+            sections.append(section_content)
 
-        # Create the page on Telegraph
+        content += "".join(sections)
+
+        # Initialize Telegraph account and create the page
+        account = await initialize_telegraph()
+        if account is None:
+            await msg.edit_text("**Failed to initialize Telegraph account.**")
+            return
+
         page = await telegraph.create_page(title="UploadXPro_Bot", html_content=content)
         page_url = page['url']
-        msg = await msg.edit("**Generate Successfully. Uploading...now😌**")
+        await msg.edit("**Generate Successfully. Uploading...now😌**")
         await asyncio.sleep(1.5)
         await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
         logger.info(f"🕵️ Media info for {file_name} sent successfully to: {user}.")
