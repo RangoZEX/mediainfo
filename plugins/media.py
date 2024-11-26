@@ -12,14 +12,15 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 
 # Set up logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # Initialize Telegraph
 telegraph = Telegraph()
 telegraph.create_account(short_name="UploadXPro_Bot", author_name="AMC DEV", author_url="https://t.me/amcdev")
 
-section_dict = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Subtitle': '🔠'}
+# Section emoji mapping
+section_dict = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Subtitle': '💬'}
 
 @Client.on_message(filters.text & filters.incoming & filters.command(["info", "mediainfo"]))
 async def media_info(client, m: Message):
@@ -84,28 +85,33 @@ async def media_info(client, m: Message):
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
 
-        # Build content for the Telegraph page
-        content = f"<h1>AMC DEVELOPERS</h1><p><b>@UploadXPro_Bot</b><br>{datetime.now().strftime('%B %d, %Y')} by: [AMC DEV](https://t.me/amcdev)</p>"
-        content += f"<p>📌 <b>{file_name}</b></p><hr>"
+        # Parse and structure media info
+        content = f"""
+<b>AMC DEVELOPERS</b><br>
+
+<b>@UploadXPro_Bot</b><br>
+{datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a><br><br>
+
+📌 <b>{file_name}</b><br><br>
+"""
 
         for track in mediainfo_json['media']['track']:
             section_type = track.get('@type', 'Unknown')
             emoji = section_dict.get(section_type, 'ℹ️')
-            content += f"<h4>{emoji} {section_type}:</h4><ul>"
+            content += f"<b>{emoji} {section_type}:</b><br><ul>"
 
             for key, value in track.items():
                 if key != '@type':
                     content += f"<li><b>{key}:</b> {value}</li>"
-            content += "</ul><hr>"
+            content += "</ul><br>"
 
-        # Create the Telegraph page
-        page = telegraph.create_page(
-            title=f"Media Info - {file_name}",
-            html_content=content
-        )
+        # Create Telegraph page
+        page_title = "@UploadXPro_Bot"
+        page = telegraph.create_page(title=page_title, html_content=content)
+        page_url = page['url']
 
-        await msg.edit(f"**Successfully Generated ✓**\n\n[Click here to view media information]({page['url']})")
-        logger.info(f"🕵️ Media info for {file_name} sent successfully to: {user}.")
+        await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
+        logger.info(f"🕵️ Media info for, {file_name} sent successfully to: {user}.")
 
     except Exception as e:
         logger.error(f"Error processing file: {e}\nTraceback:\n{traceback.format_exc()}")
