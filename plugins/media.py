@@ -9,6 +9,7 @@ from datetime import datetime
 from telegraph.aio import Telegraph
 from pyrogram import Client, filters
 from pyrogram.types import Message
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -73,39 +74,32 @@ async def media_info(client, m: Message):
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
         
-        # Updated content HTML with allowed tags
         content = f"""
-        <p><b>AMC DEVELOPERS</b></p>
+        <h3>AMC DEVELOPERS</h3>
         <p><b>@UploadXPro_Bot</b></p>
         <p>{datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a></p>
         <hr><br>
 
-        <div class="section">
-        <p><b>{file_name}</b></p>
-        <p>File Size: {size / 1024 / 1024:.2f} MB</p>
-        </div>
+        <h3>🗒 General Information</h3>
+        <pre>
         """
-
-        sections = []
-
-        general_section = "<div class='section'><p><b>🗒 General Information</b></p><pre>"
+        
+        # Add general media information
         for key, value in mediainfo_json['media'].items():
-            general_section += f"{key:<40}: {value}\n"
-        general_section += "</pre></div><br>"
-        sections.append(general_section)
+            content += f"{key:<40}: {value}\n"
+        content += "</pre><br>"
 
+        # Add track information (if available)
         for track in mediainfo_json['media']['track']:
             section_type = track.get('@type', 'Unknown')
             emoji = section_dict.get(section_type, 'ℹ️')
-            section_content = f"<div class='section'><p><b>{emoji} {section_type} Information</b></p><pre>"
+            content += f"<h3>{emoji} {section_type} Information</h3><pre>"
             for key, value in track.items():
                 if key != '@type':
-                    section_content += f"{key:<40}: {value}\n"
-            section_content += "</pre></div><br>"
-            sections.append(section_content)
+                    content += f"{key:<40}: {value}\n"
+            content += "</pre><br>"
 
-        content += "".join(sections)
-
+        # Create the page on Telegraph
         page = await telegraph.create_page(title="UploadXPro_Bot", html_content=content)
         page_url = page['url']
         msg = await msg.edit("**Generate Successfully. Uploading...now😌**")
