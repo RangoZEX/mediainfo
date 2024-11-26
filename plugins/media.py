@@ -20,7 +20,7 @@ async def initialize_telegraph():
     try:
         # Attempt to create a new Telegraph account each time
         account = await telegraph.create_account(
-            short_name="UploadXPro_Bot", 
+            short_name="Telegram- @UploadXPro_Bot", 
             author_name="AMC DEV", 
             author_url="https://t.me/amcdev"
         )
@@ -30,6 +30,13 @@ async def initialize_telegraph():
         logger.error(f"Error creating Telegraph account: {e}")
         return None
 
+
+async def media_size(size):
+    if size < 1_073_741_824:
+        return f"{size / 1024 / 1024:.2f} MB"
+    else:
+        return f"{size / 1024 / 1024 / 1024:.2f} GB"
+        
 # Function to handle media info command
 @Client.on_message(filters.text & filters.incoming & filters.command(["info", "mediainfo"]))
 async def media_info(client, m: Message):
@@ -61,7 +68,7 @@ async def media_info(client, m: Message):
         mime = media.mime_type
         file_name = media.file_name
         size = media.file_size
-        logger.info(f"🕵️ {user}, Requests info of:📁 {file_name}, 💽 Size: {size} bytes")
+        logger.info(f"🕵️ {user}, Requests info of:📁 {file_name}, 💽 Size: {(media_size(size))} bytes")
 
         # Download or stream the media based on its size
         if media_type == 'document' and all(x not in mime for x in ['video', 'audio', 'image']):
@@ -85,11 +92,11 @@ async def media_info(client, m: Message):
 
         # Prepare content for the Telegraph page
         content = f"""
-        <p><b>@UploadXPro_Bot</b></p>
+        <p><b>🔰 @MaxxBotOfficial</b></p>
         <p>{datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a></p>
         <hr><br>
         <h3>📁 <b>{file_name}</b></h3>
-        <p>File Size: {size / 1024 / 1024:.2f} MB</p>
+        <p>💽 File Size: {(media_size(size))} </p>
         """
 
         sections = []
