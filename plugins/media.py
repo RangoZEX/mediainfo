@@ -18,7 +18,6 @@ telegraph = Telegraph(domain="graph.org")
 # Initialize the Telegraph account every time the script runs
 async def initialize_telegraph():
     try:
-        # Attempt to create a new Telegraph account each time
         account = await telegraph.create_account(
             short_name="Telegram- @UploadXPro_Bot", 
             author_name="AMC DEV", 
@@ -32,9 +31,9 @@ async def initialize_telegraph():
 
 
 async def media_size(size):
-    if size < 1_073_741_824:
+    if size < 1_073_741_824:  # Less than 1GB
         return f"{size / 1024 / 1024:.2f} MB"
-    else:
+    else:  # Greater than 1GB
         return f"{size / 1024 / 1024 / 1024:.2f} GB"
         
 # Function to handle media info command
@@ -50,32 +49,35 @@ async def media_info(client, m: Message):
 
     await asyncio.sleep(1)
     media_message = m.reply_to_message
-    media_type = media_message.media.value
 
     try:
         # Check media type and fetch media info
-        if media_type == 'video':
+        if media_message.video:
             media = media_message.video
-        elif media_type == 'audio':
+            media_type = 'video'
+        elif media_message.audio:
             media = media_message.audio
-        elif media_type == 'document':
+            media_type = 'audio'
+        elif media_message.document:
             media = media_message.document
+            media_type = 'document'
         else:
-            logger.warning(f"🕵️ {user}, sent an unsupported media type: {media_type}")
+            logger.warning(f"🕵️ {user}, sent an unsupported media type.")
             await msg.edit_text("**This media type is not supported.**")
             return
 
         mime = media.mime_type
         file_name = media.file_name
         size = media.file_size
-        logger.info(f"🕵️ {user}, Requests info of:📁 {file_name}, 💽 Size: {(media_size(size))} bytes")
+        logger.info(f"🕵️ {user}, Requesting info of:📁 {file_name}, 💽 Size: {(await media_size(size))} bytes")
 
-        # Download or stream the media based on its size
+        # Handle unsupported document types
         if media_type == 'document' and all(x not in mime for x in ['video', 'audio', 'image']):
             logger.warning(f"🤡 {user}, sent an unsupported document MIME type: {mime}")
             await msg.edit_text("**This document type is not supported.**")
             return
 
+        # Handle download or streaming of the media
         if size <= 50_000_000:
             await media_message.download(file_name)
             logger.info(f"Downloaded file: {file_name}")
@@ -96,7 +98,7 @@ async def media_info(client, m: Message):
         <p>{datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a></p>
         <hr><br>
         <h3>📁 <b>{file_name}</b></h3>
-        <p>💽 File Size: {(media_size(size))} </p>
+        <p>💽 File Size: {(await media_size(size))} </p>
         """
 
         sections = []
@@ -110,7 +112,7 @@ async def media_info(client, m: Message):
         # Add track information (if any)
         for track in mediainfo_json['media'].get('track', []):
             section_type = track.get('@type', 'Unknown')
-            emoji = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Menu': '🗃'}.get(section_type, 'ℹ️')
+            emoji = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Subtitles': '📜', 'Menu': '🗃'}.get(section_type, 'ℹ️')
             section_content = f"<h3>{emoji} {section_type} Information</h3><pre>"
             for key, value in track.items():
                 if key != '@type':
@@ -129,7 +131,7 @@ async def media_info(client, m: Message):
         page = await telegraph.create_page(title="UploadXPro_Bot", html_content=content)
         page_url = page['url']
         await msg.edit("**Generate Successfully. Uploading...now😌**")
-        await asyncio.sleep(1.5)
+        await asyncio.sleep(1)
         await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
         logger.info(f"🕵️ Media info for {file_name} sent successfully to: {user}.")
 
