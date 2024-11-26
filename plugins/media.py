@@ -1,26 +1,23 @@
-import json
-import os
+from datetime import datetime
 import random
-import asyncio
+import json
 import subprocess
 import logging
-import traceback
-from datetime import datetime
 from telegraph import Telegraph
 from plugins.emojis import EMOJIS
 from pyrogram import Client, filters
 from pyrogram.types import Message
+import traceback
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # Initialize Telegraph
 telegraph = Telegraph()
 telegraph.create_account(short_name="UploadXPro_Bot", author_name="AMC DEV", author_url="https://t.me/amcdev")
 
-# Section emoji mapping
-section_dict = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Subtitle': '💬'}
+section_dict = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Menu': '🗃'}
 
 @Client.on_message(filters.text & filters.incoming & filters.command(["info", "mediainfo"]))
 async def media_info(client, m: Message):
@@ -48,7 +45,6 @@ async def media_info(client, m: Message):
     media_type = media_message.media.value
 
     try:
-        # Determine media type and fetch media details
         if media_type == 'video':
             media = media_message.video
         elif media_type == 'audio':
@@ -85,33 +81,44 @@ async def media_info(client, m: Message):
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
 
-        # Parse and structure media info
+        # Start building the HTML content
         content = f"""
-<b>AMC DEVELOPERS</b><br>
+        <b>AMC DEVELOPERS</b><br><br>
+        <b>@UploadXPro_Bot</b><br>
+        {datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a><br><br>
 
-<b>@UploadXPro_Bot</b><br>
-{datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a><br><br>
+        📌 <b>{file_name}</b><br><br>
+        """
 
-📌 <b>{file_name}</b><br><br>
-"""
+        # Append sections dynamically
+        sections = []
 
+        # General section
+        general_section = "<h4>🗒 General Information</h4><ul>"
+        for key, value in mediainfo_json['media'].items():
+            general_section += f"<li><b>{key}:</b> {value}</li>"
+        general_section += "</ul><br>"
+        sections.append(general_section)
+
+        # Video, Audio, and other sections
         for track in mediainfo_json['media']['track']:
             section_type = track.get('@type', 'Unknown')
             emoji = section_dict.get(section_type, 'ℹ️')
-            content += f"<b>{emoji} {section_type}:</b><br><ul>"
-
+            section_content = f"<h4>{emoji} {section_type} Information</h4><ul>"
             for key, value in track.items():
                 if key != '@type':
-                    content += f"<li><b>{key}:</b> {value}</li>"
-            content += "</ul><br>"
+                    section_content += f"<li><b>{key}:</b> {value}</li>"
+            section_content += "</ul><br>"
+            sections.append(section_content)
 
-        # Create Telegraph page
-        page_title = "@UploadXPro_Bot"
-        page = telegraph.create_page(title=page_title, html_content=content)
+        content += "".join(sections)
+
+        # Create the page on Telegraph
+        page = telegraph.create_page(title=f"Media Info for {file_name}", html_content=content)
         page_url = page['url']
 
         await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
-        logger.info(f"🕵️ Media info for, {file_name} sent successfully to: {user}.")
+        logger.info(f"🕵️ Media info for {file_name} sent successfully to: {user}.")
 
     except Exception as e:
         logger.error(f"Error processing file: {e}\nTraceback:\n{traceback.format_exc()}")
