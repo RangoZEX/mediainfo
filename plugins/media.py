@@ -102,9 +102,9 @@ async def media_info(client, m: Message):
         <h3>📁 <b>{file_name}</b></h3>
         <p>💽 𝗙𝗜𝗟𝗘 𝗦𝗜𝗭𝗘: {(await media_size(size))} </p>
         """
-
+     
         sections = []
-    
+  
         # Add track information (if any)
         for track in mediainfo_json['media'].get('track', []):
             section_type = track.get('@type', 'Unknown')
@@ -130,7 +130,7 @@ async def media_info(client, m: Message):
         page_url = page['url']
         
         await msg.edit("**Generate Successfully. Uploading...now😌**")
-        logger.info("🕵️Generate Successfully for- {user}, Uploading...now😌")
+        logger.info(f"🕵️ Generate Successfully for- {user}, Uploading...now😌")
         
         await asyncio.sleep(1)
         await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
