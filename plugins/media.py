@@ -25,7 +25,7 @@ async def initialize_telegraph():
             author_name="AMC DEV", 
             author_url="https://t.me/amcdev"
         )
-        logger.info(f"Telegraph Account initialized successfully: {account}")
+        logger.info(f"𝗧𝗲𝗹𝗲𝗴𝗿𝗮𝗽𝗵 𝗔𝗰𝗰𝗼𝘂𝗻𝘁 𝗶𝗻𝗶𝘁𝗶𝗮𝗹𝗶𝘇𝗲𝗱 𝘀𝘂𝗰𝗰𝗲𝘀𝘀𝗳𝘂𝗹𝗹𝘆: {account}")
         return account
     except Exception as e:
         logger.error(f"Error creating Telegraph account: {e}")
@@ -93,7 +93,7 @@ async def media_info(client, m: Message):
         mediainfo_json = json.loads(
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
-
+       
         # Prepare content for the Telegraph page
         content = f"""
         <p><b>🔰 @MaxxBotOfficial</b></p>
@@ -104,12 +104,19 @@ async def media_info(client, m: Message):
         """
      
         sections = []
-  
+     
+         # Custom Level map
+        custom_labels = {
+            'General': '🗒 𝗚𝗘𝗡𝗘𝗥𝗔𝗟 𝗜𝗡𝗙𝗢',
+            'Video': '🎞 𝗩𝗜𝗗𝗘𝗢 𝗜𝗡𝗙𝗢',
+            'Audio': '🔊 𝗔𝗨𝗗𝗜𝗢 𝗜𝗡𝗙𝗢',
+            'Text': '📜 𝗦𝗨𝗕𝗧𝗜𝗧𝗟𝗘𝗦 𝗜𝗡𝗙𝗢'
+        }
         # Add track information (if any)
         for track in mediainfo_json['media'].get('track', []):
             section_type = track.get('@type', 'Unknown')
-            emoji = {'𝗚𝗘𝗡𝗘𝗥𝗔𝗟': '🗒', '𝗩𝗜𝗗𝗘𝗢': '🎞', '𝗔𝗨𝗗𝗜𝗢': '🔊', '𝗦𝗨𝗕𝗧𝗜𝗧𝗟𝗘𝗦': '📜'}.get(section_type, 'ℹ️')
-            section_content = f"<h3>{emoji} {section_type} 𝗜𝗡𝗙𝗢</h3><pre>"
+            label = custom_labels.get(section_type, 'ℹ️ 𝗜𝗡𝗙𝗢')  # Use custom label or default to ℹ️ INFO
+            section_content = f"<h3>{label}</h3><pre>"
             for key, value in track.items():
                 if key != '@type':
                     section_content += f"{key:<40}: {value}\n"
