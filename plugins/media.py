@@ -9,14 +9,18 @@ from plugins.emojis import EMOJIS
 from pyrogram import Client, filters
 from pyrogram.types import Message
 import traceback
+import os
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Telegraph
-telegraph = Telegraph()
-telegraph.create_account(short_name="UploadXPro_Bot", author_name="AMC DEV", author_url="https://t.me/amcdev")
+# Initialize Telegraph and create an account if it doesn't exist
+telegraph = Telegraph(domain="graph.org")
+try:
+    telegraph.create_account(short_name="UploadXPro_Bot", author_name="AMC DEV", author_url="https://t.me/amcdev")
+except Exception as e:
+    logger.info(f"Telegraph account already exists or failed to create: {e}")
 
 section_dict = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Menu': '🗃'}
 
@@ -82,40 +86,58 @@ async def media_info(client, m: Message):
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
 
-        # Start building the HTML content
+        # Start building the HTML content with improved design
         content = f"""
-        <b>AMC DEVELOPERS</b><br><br>
-        <b>@UploadXPro_Bot</b><br>
-        {datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a><br><br>
+        <html>
+        <head>
+        <style>
+        body {{ font-family: Arial, sans-serif; color: #333; }}
+        h2 {{ color: #ff6347; }}
+        ul {{ margin-top: 5px; }}
+        li {{ margin-bottom: 8px; }}
+        .section {{ margin-bottom: 20px; }}
+        </style>
+        </head>
+        <body>
+        <h2>AMC DEVELOPERS</h2>
+        <p><b>@UploadXPro_Bot</b></p>
+        <p>{datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a></p>
+        <hr><br>
 
-        📌 <b>{file_name}</b><br><br>
+        <div class="section">
+        <h3>📁 <b>{file_name}</b></h3>
+        <p>File Size: {size / 1024 / 1024:.2f} MB</p>
+        </div>
         """
 
         # Append sections dynamically
         sections = []
 
         # General section
-        general_section = "<h4>🗒 General Information</h4><ul>"
+        general_section = "<div class='section'><h3>🗒 General Information</h3><ul>"
         for key, value in mediainfo_json['media'].items():
             general_section += f"<li><b>{key}:</b> {value}</li>"
-        general_section += "</ul><br>"
+        general_section += "</ul></div>"
         sections.append(general_section)
 
         # Video, Audio, and other sections
         for track in mediainfo_json['media']['track']:
             section_type = track.get('@type', 'Unknown')
             emoji = section_dict.get(section_type, 'ℹ️')
-            section_content = f"<h4>{emoji} {section_type} Information</h4><ul>"
+            section_content = f"<div class='section'><h3>{emoji} {section_type} Information</h3><ul>"
             for key, value in track.items():
                 if key != '@type':
                     section_content += f"<li><b>{key}:</b> {value}</li>"
-            section_content += "</ul><br>"
+            section_content += "</ul></div>"
             sections.append(section_content)
 
         content += "".join(sections)
 
+        # Closing HTML tags
+        content += "</body></html>"
+
         # Create the page on Telegraph
-        page = telegraph.create_page(title=f"Media Info for {file_name}", html_content=content)
+        page = telegraph.create_page(title=f"UploadXPro_Bot", html_content=content)
         page_url = page['url']
 
         await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
