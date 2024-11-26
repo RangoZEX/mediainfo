@@ -9,9 +9,11 @@ from datetime import datetime
 from telegraph.aio import Telegraph
 from pyrogram import Client, filters
 from pyrogram.types import Message
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import logging.config
+ 
+# Set up logging
+logging.config.fileConfig('logging.conf')
+logger = logging.getLogger(__name__)  
 
 telegraph = Telegraph(domain="graph.org")
 
@@ -69,7 +71,7 @@ async def media_info(client, m: Message):
         mime = media.mime_type
         file_name = media.file_name
         size = media.file_size
-        logger.info(f"🕵️ {user}, Requesting info of:📁 {file_name}, 💽 Size: {(await media_size(size))} bytes")
+        logger.info(f"🕵️ {user}, Requesting info of:📁 {file_name}, 💽 Size: {(await media_size(size))}")
 
         # Handle unsupported document types
         if media_type == 'document' and all(x not in mime for x in ['video', 'audio', 'image']):
@@ -98,22 +100,16 @@ async def media_info(client, m: Message):
         <p>{datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a></p>
         <hr><br>
         <h3>📁 <b>{file_name}</b></h3>
-        <p>💽 File Size: {(await media_size(size))} </p>
+        <p>💽 𝗙𝗜𝗟𝗘 𝗦𝗜𝗭𝗘: {(await media_size(size))} </p>
         """
 
         sections = []
-
-        general_section = "<h3>🗒 General Information</h3><pre>"
-        for key, value in mediainfo_json['media'].items():
-            general_section += f"{key:<40}: {value}\n"
-        general_section += "</pre><br>"
-        sections.append(general_section)
-
+    
         # Add track information (if any)
         for track in mediainfo_json['media'].get('track', []):
             section_type = track.get('@type', 'Unknown')
-            emoji = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Subtitles': '📜', 'Menu': '🗃'}.get(section_type, 'ℹ️')
-            section_content = f"<h3>{emoji} {section_type} Information</h3><pre>"
+            emoji = {'𝗚𝗘𝗡𝗘𝗥𝗔𝗟': '🗒', '𝗩𝗜𝗗𝗘𝗢': '🎞', '𝗔𝗨𝗗𝗜𝗢': '🔊', '𝗦𝗨𝗕𝗧𝗜𝗧𝗟𝗘𝗦': '📜'}.get(section_type, 'ℹ️')
+            section_content = f"<h3>{emoji} {section_type} 𝗜𝗡𝗙𝗢</h3><pre>"
             for key, value in track.items():
                 if key != '@type':
                     section_content += f"{key:<40}: {value}\n"
@@ -125,12 +121,17 @@ async def media_info(client, m: Message):
         # Initialize Telegraph account and create the page
         account = await initialize_telegraph()
         if account is None:
-            await msg.edit_text("**Failed to initialize Telegraph account.**")
+            logger.info("Failed to initialize Telegraph account.")
+            await msg.edit_text("**Something went wrong while creating telegraph account**")
             return
-
-        page = await telegraph.create_page(title="UploadXPro_Bot", html_content=content)
+            
+        # Page Create 
+        page = await telegraph.create_page(title="🔰 Telegram: @UploadXPro_Bot", html_content=content)
         page_url = page['url']
+        
         await msg.edit("**Generate Successfully. Uploading...now😌**")
+        logger.info("🕵️Generate Successfully for- {user}, Uploading...now😌")
+        
         await asyncio.sleep(1)
         await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
         logger.info(f"🕵️ Media info for {file_name} sent successfully to: {user}.")
