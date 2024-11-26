@@ -1,3 +1,6 @@
+# ©RangoZex - Owner 
+import traceback
+import os
 import asyncio
 import random
 import json
@@ -8,18 +11,23 @@ from telegraph.aio import Telegraph
 from plugins.emojis import EMOJIS
 from pyrogram import Client, filters
 from pyrogram.types import Message
-import traceback
-import os
 
-# Set up logging
+
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize Telegraph (auto-create account)
 telegraph = Telegraph(domain="graph.org")
-account = asyncio.run(telegraph.create_account(short_name="UploadXPro_Bot", author_name="AMC DEV", author_url="https://t.me/amcdev"))
 
-# Section mapping for media types
+async def initialize_telegraph():
+    return await telegraph.create_account(
+        short_name="UploadXPro_Bot", 
+        author_name="AMC DEV", 
+        author_url="https://t.me/amcdev"
+    )
+
+async def main():
+    account = await initialize_telegraph()
+
 section_dict = {'General': '🗒', 'Video': '🎞', 'Audio': '🔊', 'Text': '🔠', 'Menu': '🗃'}
 
 @Client.on_message(filters.text & filters.incoming & filters.command(["info", "mediainfo"]))
@@ -68,22 +76,20 @@ async def media_info(client, m: Message):
             logger.warning(f"🤡 {user}, sent an unsupported document MIME type: {mime}")
             await msg.edit_text("**This document type is not supported.**")
             return
-        # Download or stream the file
-        if size <= 50_000_000:  # Direct download for smaller files
+
+        if size <= 50_000_000:
             await media_message.download(file_name)
             logger.info(f"Downloaded file: {file_name}")
-        else:  # Stream large files
+        else:
             logger.info(f"Streaming file: {file_name}")
             async for chunk in client.stream_media(media_message, limit=5):
                 with open(file_name, 'ab') as f:
                     f.write(chunk)
 
-        # Run mediainfo subprocess
         mediainfo_json = json.loads(
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
 
-        # Start building the content without <html> and <body> tags
         content = f"""
         <h2>AMC DEVELOPERS</h2>
         <p><b>@UploadXPro_Bot</b></p>
@@ -96,17 +102,14 @@ async def media_info(client, m: Message):
         </div>
         """
 
-        # Append sections dynamically
         sections = []
 
-        # General section
         general_section = "<div class='section'><h3>🗒 General Information</h3><pre>"
         for key, value in mediainfo_json['media'].items():
             general_section += f"{key:<40}: {value}\n"
         general_section += "</pre></div><br>"
         sections.append(general_section)
 
-        # Video, Audio, and other sections
         for track in mediainfo_json['media']['track']:
             section_type = track.get('@type', 'Unknown')
             emoji = section_dict.get(section_type, 'ℹ️')
@@ -119,7 +122,6 @@ async def media_info(client, m: Message):
 
         content += "".join(sections)
 
-        # Create the page on Telegraph
         page = await telegraph.create_page(title="UploadXPro_Bot", html_content=content)
         page_url = page['url']
 
@@ -131,4 +133,5 @@ async def media_info(client, m: Message):
         await msg.edit_text("**An error occurred while processing this file.**")
     finally:
         if os.path.exists(file_name):
-            os.remove(file_name) 
+            os.remove(file_name)
+            
