@@ -5,3 +5,5 @@ requests
 dnspython
 python-dotenv<=0.20.0
 telegraph
+langcodes[data]
+httpx
