@@ -1,4 +1,3 @@
-# ©RangoZex - Owner 
 import traceback
 import os
 import asyncio
@@ -8,11 +7,8 @@ import subprocess
 import logging
 from datetime import datetime
 from telegraph.aio import Telegraph
-from plugins.emojis import EMOJIS
 from pyrogram import Client, filters
 from pyrogram.types import Message
-
-
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -39,22 +35,9 @@ async def media_info(client, m: Message):
         await msg.edit_text("**Please reply to a VIDEO, AUDIO, or DOCUMENT to get media information.**")
         logger.warning(f"🕵️ {user}, sent an unsupported or no media.")
         return
-
-    try:
-        random_emoji = random.choice(EMOJIS.EMOJI_LIST)
-        await client.send_reaction(
-            chat_id=m.chat.id,
-            message_id=m.id,
-            emoji=random_emoji,
-            big=True
-        )
-    except Exception as e:
-        logger.error(f"Error sending reaction: {e}\nTraceback:\n{traceback.format_exc()}")
-
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(1)
     media_message = m.reply_to_message
     media_type = media_message.media.value
-
     try:
         if media_type == 'video':
             media = media_message.video
@@ -89,22 +72,23 @@ async def media_info(client, m: Message):
         mediainfo_json = json.loads(
             subprocess.check_output(['mediainfo', file_name, '--Output=JSON']).decode("utf-8")
         )
-
+        
+        # Updated content HTML with allowed tags
         content = f"""
-        <h2>AMC DEVELOPERS</h2>
+        <p><b>AMC DEVELOPERS</b></p>
         <p><b>@UploadXPro_Bot</b></p>
         <p>{datetime.now().strftime('%B %d, %Y')} by: <a href="https://t.me/amcdev">AMC DEV</a></p>
         <hr><br>
 
         <div class="section">
-        <h3>📁 <b>{file_name}</b></h3>
+        <p><b>{file_name}</b></p>
         <p>File Size: {size / 1024 / 1024:.2f} MB</p>
         </div>
         """
 
         sections = []
 
-        general_section = "<div class='section'><h3>🗒 General Information</h3><pre>"
+        general_section = "<div class='section'><p><b>🗒 General Information</b></p><pre>"
         for key, value in mediainfo_json['media'].items():
             general_section += f"{key:<40}: {value}\n"
         general_section += "</pre></div><br>"
@@ -113,7 +97,7 @@ async def media_info(client, m: Message):
         for track in mediainfo_json['media']['track']:
             section_type = track.get('@type', 'Unknown')
             emoji = section_dict.get(section_type, 'ℹ️')
-            section_content = f"<div class='section'><h3>{emoji} {section_type} Information</h3><pre>"
+            section_content = f"<div class='section'><p><b>{emoji} {section_type} Information</b></p><pre>"
             for key, value in track.items():
                 if key != '@type':
                     section_content += f"{key:<40}: {value}\n"
@@ -124,7 +108,8 @@ async def media_info(client, m: Message):
 
         page = await telegraph.create_page(title="UploadXPro_Bot", html_content=content)
         page_url = page['url']
-
+        msg = await msg.edit("**Generate Successfully. Uploading...now😌**")
+        await asyncio.sleep(1.5)
         await msg.edit(f"**MediaInfo Successfully Generated ✓**\n\n[Click here to view media information]({page_url})")
         logger.info(f"🕵️ Media info for {file_name} sent successfully to: {user}.")
 
